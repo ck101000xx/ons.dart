@@ -3,8 +3,8 @@ class Expression {
 }
 class Variable implements Expression {
 }
-class Constant implements Expression {
-  Object v;
+class Constant<T> implements Expression {
+  T value;
   Constant(v) : value(v) {
   }
 }
