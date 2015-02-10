@@ -3,11 +3,24 @@ class Expression {
 class Variable implements Expression {
   final Type type;
   final index;
-  Variable(this.type, this.index);
+  factory Variable(type, index, [indicies]) {
+    if (type == List) {
+      return new ListVariable(index, indicies);
+    } else {
+      return new Variable._internal(type, index);
+    }
+  }
+  Variable._internal(this.type, this.index);
+}
+class ListVariable extends Variable implements Expression {
+  final Type type = List;
+  final List indicies;
+  ListVariable(index, this.indicies) : super._internal(List, index);
 }
 class Constant implements Expression {
+  final Type type;
   final value;
-  Constant(this.value);
+  Constant(this.type, this.value);
 }
 class Add implements Expression {
   final Expression left, right;

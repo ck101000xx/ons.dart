@@ -1,9 +1,12 @@
 import 'package:ons/script/types.dart';
 import 'package:petitparser/petitparser.dart';
 
+class NScripterGrammar extends GrammarParser {
+  NScripterGrammar() : super(new NScripterGrammarDefinition());
+}
 
 class NScripterGrammarDefinition extends GrammarDefinition { 
-  start() => ref(statement).star().end();
+  start() => ref(statement);
   newline() => Token.newlineParser();
   comment() => char(';') & ref(newline).neg().star();
   white() =>
@@ -18,29 +21,49 @@ class NScripterGrammarDefinition extends GrammarDefinition {
       .flatten();
 
   variable(Type type) {
+    Parser subscript = (char('[') & ref(constant, int).trim() & char(']')).pick(1);
     Map<Type, String> prefixes = {
       double: '%',
       String: '\$',
       List:   '?'
     };
-    return (char(prefixes[type]) & ref(integer).or(ref(name))).pick(1);
+    return
+      char(prefixes[type]).seq(ref(constant, int)).pick(1)
+        .seq(subscript.separatedBy(whitespace(), includeSeparators: false).trim())
+        .map((list) => new Variable(type, list[0], list[1]));
+  }
+
+  constant(Type type) {
+    Parser parser;
+    switch (type) {
+      case int:
+        parser = ref(integer).or(ref(name));
+        break;
+      case double:
+        parser =
+          (char('+') | char('-')).optional()
+            .seq(ref(digits))
+            .seq(char('.').seq(ref(digits)).optional())
+            .flatten()
+            .map(double.parse);
+        break;
+      case String:
+        parser = (char('"') & char('"').neg().star().flatten() & char('"')).pick(1);
+        break;
+    }
+    return parser.map((value) => new Constant(type, value));
   }
 
   expression() {
-    Parser number =
-      (char('+') | char('-')).optional()
-        .seq(ref(digits))
-        .seq(char('.').seq(ref(digits)).optional())
-        .flatten()
-        .map(double.parse);
-
-    Parser string = (char('"') & char('"').neg().star().flatten() & char('"')).pick(1);
-    
     ExpressionBuilder builder = new ExpressionBuilder();
     
     builder.group()
-      ..primitive(number.or(ref(integer)).map((n) => new Constant(n)).trim())
-      ..primitive(string.map((n) => new Constant(n)).trim());
+      ..primitive(ref(variable, double))
+      ..primitive(ref(variable, String))
+      ..primitive(ref(variable, List))
+      ..primitive(ref(constant, int))
+      ..primitive(ref(constant, double))
+      ..primitive(ref(constant, String));
     
     builder.group()
       ..left(char('*').trim(), (a, op, b) => new Mut(a, b))
