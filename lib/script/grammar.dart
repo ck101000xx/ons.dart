@@ -81,7 +81,7 @@ class NScripterGrammarDefinition extends GrammarDefinition {
       (ref(expression) &  operator.trim() & ref(expression)).map((list) => fn(list[0], list[1]));
 
     Parser cond =
-      (string('fchk') & whitespace().plus() & ref(expression)).map((a) => new FCHK(a)) |
+      (string('fchk') & whitespace().plus() & ref(expression)).pick(2).map((a) => new FCHK(a)) |
       unary(char('=').seq(char('=').optional()).trim(), (a, b) => new EQ(a, b)) |
       unary(string('!=').or(string('<>')).trim(), (a, b) => new NE(a, b)) |
       unary(string('>=').trim(), (a, b) => new GTE(a, b)) |
